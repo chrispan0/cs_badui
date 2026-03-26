@@ -5,8 +5,7 @@ services:
     env_file:
       - .env
     environment:
-      - PORT=${PORT:-3000}
       - MONGODB_URI=${MONGODB_URI}
     ports:
-      - "${PORT:-3000}:3000"
+      - "3008:3000"
     restart: unless-stopped
