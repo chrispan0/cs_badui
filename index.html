@@ -1,0 +1,905 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tetris Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #000000;
+      --green: #00ff66;
+      --green-dim: rgba(0, 255, 102, 0.35);
+      --green-dimmer: rgba(0, 255, 102, 0.18);
+      --text: rgba(0, 255, 102, 0.92);
+      --mono: "IBM Plex Mono", "Courier New", monospace;
+      --terminal: "VT323", "IBM Plex Mono", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--terminal);
+      background: var(--bg);
+      color: var(--text);
+      padding: 16px;
+      font-size: 24px;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 50% 40%, rgba(0, 255, 102, 0.08), transparent 55%),
+        repeating-linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.03),
+          rgba(255, 255, 255, 0.03) 1px,
+          transparent 1px,
+          transparent 3px
+        );
+      pointer-events: none;
+      mix-blend-mode: screen;
+      opacity: 0.45;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      border: 1px solid var(--green-dimmer);
+      border-radius: 12px;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.7);
+      box-shadow: 0 0 24px rgba(0, 255, 102, 0.1), inset 0 0 18px rgba(0, 255, 102, 0.05);
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      margin: 0 0 16px;
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--green);
+      text-shadow: 0 0 20px rgba(0, 255, 102, 0.35);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--green-dimmer);
+      border-radius: 10px;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.65);
+      box-shadow: inset 0 0 12px rgba(0, 255, 102, 0.07);
+    }
+
+    canvas {
+      display: block;
+      width: 300px;
+      max-width: 100%;
+      height: auto;
+      border: 1px solid var(--green-dimmer);
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.9);
+      box-shadow: 0 0 14px rgba(0, 255, 102, 0.15);
+    }
+
+    .stats p {
+      margin: 8px 0;
+    }
+
+    .row {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 700;
+      color: var(--green);
+      letter-spacing: 0.06em;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid var(--green-dimmer);
+      border-radius: 6px;
+      padding: 8px;
+      font-family: var(--mono);
+      font-size: 1rem;
+      background: rgba(0, 0, 0, 0.85);
+      color: var(--green);
+      box-shadow: inset 0 0 8px rgba(0, 255, 102, 0.08);
+    }
+
+    input:disabled {
+      background: rgba(0, 0, 0, 0.55);
+      color: rgba(0, 255, 102, 0.45);
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    button {
+      border: 2px solid var(--green);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--green);
+      padding: 8px 12px;
+      font-family: var(--terminal);
+      font-size: 1rem;
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      box-shadow: 0 0 12px rgba(0, 255, 102, 0.15);
+      transition: all 0.2s ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--green);
+      color: var(--bg);
+      box-shadow: 0 0 24px rgba(0, 255, 102, 0.4);
+    }
+
+    button:disabled {
+      color: rgba(0, 255, 102, 0.45);
+      border-color: var(--green-dimmer);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .note {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: rgba(0, 255, 102, 0.78);
+    }
+
+    .leaderboard {
+      margin-top: 12px;
+      border-top: 1px solid var(--green-dimmer);
+      padding-top: 10px;
+    }
+
+    .leaderboard h2 {
+      margin: 0 0 8px;
+      font-size: 1.1rem;
+      color: var(--green);
+      letter-spacing: 0.08em;
+    }
+
+    .leaderboard ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .leaderboard li {
+      margin: 4px 0;
+      font-size: 0.95rem;
+      color: rgba(0, 255, 102, 0.88);
+    }
+
+    .preview-wrap {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .preview-box {
+      border: 1px solid var(--green-dimmer);
+      border-radius: 8px;
+      padding: 8px;
+      background: rgba(0, 0, 0, 0.7);
+    }
+
+    .preview-box p {
+      margin: 0 0 6px;
+      font-size: 0.9rem;
+      letter-spacing: 0.06em;
+      color: var(--green);
+    }
+
+    .preview-canvas {
+      width: 100%;
+      max-width: 110px;
+      border: 1px solid var(--green-dimmer);
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.85);
+      display: block;
+      margin: 0 auto;
+    }
+
+    .netsoc-bouncer {
+      position: fixed;
+      width: 72px;
+      height: 72px;
+      pointer-events: none;
+      user-select: none;
+      z-index: 9999;
+      display: none;
+      filter: drop-shadow(0 0 12px rgba(0, 255, 102, 0.55));
+      will-change: transform;
+      object-fit: contain;
+    }
+
+    .netsoc-bouncer.active {
+      display: block;
+      transform-origin: center;
+    }
+
+    @media (max-width: 760px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <img
+    id="netsocBouncer"
+    class="netsoc-bouncer"
+    src="https://tacops.netsoc.ca/media/logos/netsoc.png"
+    alt=""
+    aria-hidden="true"
+  >
+  <main class="container">
+    <h1>Tetris Login</h1>
+
+    <section class="layout">
+      <div class="panel">
+        <canvas id="game" width="300" height="600" aria-label="Tetris board"></canvas>
+        <div class="stats">
+          <p>Lines Cleared: <strong id="lines">0</strong></p>
+          <p>Unlocked Characters: <strong id="unlocked">0</strong></p>
+          <p>Total Typed: <strong id="typed">0</strong></p>
+          <p>Status: <strong id="status">Play to unlock typing.</strong></p>
+          <p>Controls: Left/Right move, Up rotate, Down soft drop, Space hard drop, C hold.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="row">
+          <label for="emailInput">Email</label>
+          <input id="emailInput" type="email" disabled placeholder="Clear lines first...">
+        </div>
+
+        <div class="row">
+          <label for="passwordInput">Password</label>
+          <input id="passwordInput" type="password" disabled placeholder="Clear lines first...">
+        </div>
+
+        <div class="actions">
+          <button id="startBtn" type="button">Start</button>
+          <button id="pauseBtn" type="button" disabled>Pause</button>
+          <button id="resetBtn" type="button">Reset</button>
+          <button id="loginBtn" type="button" disabled>Login</button>
+        </div>
+
+        <div class="preview-wrap">
+          <div class="preview-box">
+            <p>Next</p>
+            <canvas id="nextCanvas" class="preview-canvas" width="120" height="120" aria-label="Next piece"></canvas>
+          </div>
+          <div class="preview-box">
+            <p>Hold</p>
+            <canvas id="holdCanvas" class="preview-canvas" width="120" height="120" aria-label="Held piece"></canvas>
+          </div>
+        </div>
+
+        <p class="note">Each cleared line unlocks exactly one character total across email and password.</p>
+
+        <section class="leaderboard" aria-live="polite">
+          <h2>Leaderboard</h2>
+          <ol id="leaderboardList">
+            <li>No scores yet.</li>
+          </ol>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const COLS = 10;
+    const ROWS = 20;
+    const BLOCK = 30;
+
+    const SHAPES = {
+      I: [[1, 1, 1, 1]],
+      O: [[1, 1], [1, 1]],
+      T: [[0, 1, 0], [1, 1, 1]],
+      L: [[1, 0, 0], [1, 1, 1]],
+      J: [[0, 0, 1], [1, 1, 1]],
+      S: [[0, 1, 1], [1, 1, 0]],
+      Z: [[1, 1, 0], [0, 1, 1]]
+    };
+
+    const COLORS = {
+      I: "#00c2ff",
+      O: "#ffd60a",
+      T: "#c77dff",
+      L: "#ff8c00",
+      J: "#3a86ff",
+      S: "#70e000",
+      Z: "#ff4d6d"
+    };
+
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const nextCanvas = document.getElementById("nextCanvas");
+    const holdCanvas = document.getElementById("holdCanvas");
+    const nextCtx = nextCanvas.getContext("2d");
+    const holdCtx = holdCanvas.getContext("2d");
+
+    const linesEl = document.getElementById("lines");
+    const unlockedEl = document.getElementById("unlocked");
+    const typedEl = document.getElementById("typed");
+    const statusEl = document.getElementById("status");
+
+    const emailInput = document.getElementById("emailInput");
+    const passwordInput = document.getElementById("passwordInput");
+
+    const startBtn = document.getElementById("startBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const loginBtn = document.getElementById("loginBtn");
+    const leaderboardList = document.getElementById("leaderboardList");
+    const netsocBouncer = document.getElementById("netsocBouncer");
+    const API_BASE = window.location.protocol === "file:" ? "http://localhost:3000" : "";
+
+    let board = [];
+    let piece = null;
+    let lastTime = 0;
+    let dropCounter = 0;
+    let dropInterval = 650;
+    let gameOver = false;
+    let running = false;
+    let paused = false;
+
+    let linesCleared = 0;
+    let unlockedChars = 0;
+    let typedChars = 0;
+    let nextType = null;
+    let holdType = null;
+    let canHold = true;
+    let pieceBag = [];
+
+    const logoBalls = [];
+
+    function spawnLogoBall(strength = 1) {
+      const element = netsocBouncer.cloneNode(true);
+      element.removeAttribute("id");
+      element.classList.add("active");
+      element.style.left = "0";
+      element.style.top = "0";
+
+      const size = 72 + Math.random() * 28;
+      element.style.width = `${size}px`;
+      element.style.height = `${size}px`;
+      document.body.appendChild(element);
+
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 7 + Math.random() * 3 + strength * 0.8;
+
+      const ball = {
+        element,
+        size,
+        x: Math.random() * Math.max(1, window.innerWidth - size),
+        y: 12 + Math.random() * 40,
+        vx: Math.cos(angle) * speed * 0.8,
+        vy: 1 + Math.abs(Math.sin(angle) * speed * 0.25),
+        angle: Math.random() * 360,
+        spin: 0
+      };
+
+      logoBalls.push(ball);
+    }
+
+    function updateLogoBall() {
+      for (const ball of logoBalls) {
+        ball.vy += 0.24;
+        ball.x += ball.vx;
+        ball.y += ball.vy;
+        ball.angle += ball.spin;
+
+        ball.vx *= 0.9992;
+        ball.vy *= 0.9992;
+        ball.spin *= 0.992;
+
+        const maxX = window.innerWidth - ball.size;
+        const maxY = window.innerHeight - ball.size;
+        let bounced = false;
+
+        if (ball.x <= 0) {
+          ball.x = 0;
+          ball.vx = Math.abs(ball.vx) * 0.985;
+          ball.spin += (Math.abs(ball.vx) + Math.abs(ball.vy)) * 0.08;
+          bounced = true;
+        }
+        if (ball.x >= maxX) {
+          ball.x = maxX;
+          ball.vx = -Math.abs(ball.vx) * 0.985;
+          ball.spin -= (Math.abs(ball.vx) + Math.abs(ball.vy)) * 0.08;
+          bounced = true;
+        }
+
+        if (ball.y <= 0) {
+          ball.y = 0;
+          ball.vy = Math.abs(ball.vy) * 0.985;
+          ball.spin += ball.vx * 0.18;
+          bounced = true;
+        }
+        if (ball.y >= maxY) {
+          ball.y = maxY;
+          ball.vy = -Math.abs(ball.vy) * 0.985;
+          ball.spin += ball.vx * 0.24;
+          bounced = true;
+        }
+
+        if (bounced) {
+          ball.spin = Math.max(-22, Math.min(22, ball.spin));
+        }
+
+        ball.element.style.transform = `translate3d(${ball.x}px, ${ball.y}px, 0) rotate(${ball.angle}deg)`;
+      }
+
+      requestAnimationFrame(updateLogoBall);
+    }
+
+    function refillBag() {
+      pieceBag = Object.keys(SHAPES);
+      for (let i = pieceBag.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pieceBag[i], pieceBag[j]] = [pieceBag[j], pieceBag[i]];
+      }
+    }
+
+    function resetBoard() {
+      board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+    }
+
+    function hasCredentials() {
+      return emailInput.value.trim().length > 0 && passwordInput.value.length > 0;
+    }
+
+    function canLoginNow() {
+      return paused && hasCredentials();
+    }
+
+    function renderLeaderboard(entries) {
+      leaderboardList.innerHTML = "";
+
+      if (!entries.length) {
+        const empty = document.createElement("li");
+        empty.textContent = "No scores yet.";
+        leaderboardList.appendChild(empty);
+        return;
+      }
+
+      entries.forEach(entry => {
+        const item = document.createElement("li");
+        item.textContent = `${entry.email} - ${entry.linesCleared} lines`;
+        leaderboardList.appendChild(item);
+      });
+    }
+
+    async function loadLeaderboard() {
+      try {
+        const response = await fetch(`${API_BASE}/api/leaderboard`);
+        if (!response.ok) throw new Error("Failed to load leaderboard");
+        const data = await response.json();
+        renderLeaderboard(data.entries || []);
+      } catch (err) {
+        leaderboardList.innerHTML = "";
+        const item = document.createElement("li");
+        item.textContent = "Could not load leaderboard. Open http://localhost:3000.";
+        leaderboardList.appendChild(item);
+      }
+    }
+
+    function updateTypingState() {
+      typedChars = emailInput.value.length + passwordInput.value.length;
+      const remaining = Math.max(0, unlockedChars - typedChars);
+
+      const canType = remaining > 0;
+      emailInput.disabled = !canType;
+      passwordInput.disabled = !canType;
+
+      loginBtn.disabled = !canLoginNow();
+
+      if (canType) {
+        statusEl.textContent = `You can type ${remaining} character(s).`;
+      } else {
+        statusEl.textContent = "Clear more lines to unlock typing.";
+      }
+
+      linesEl.textContent = String(linesCleared);
+      unlockedEl.textContent = String(unlockedChars);
+      typedEl.textContent = String(typedChars);
+    }
+
+    function enforceUnlockedLimit(e) {
+      const otherLength = e.target === emailInput
+        ? passwordInput.value.length
+        : emailInput.value.length;
+      const allowedLength = Math.max(0, unlockedChars - otherLength);
+
+      if (e.target.value.length > allowedLength) {
+        e.target.value = e.target.value.slice(0, allowedLength);
+      }
+
+      updateTypingState();
+    }
+
+    async function postAndRedirect() {
+      if (!canLoginNow()) {
+        statusEl.textContent = "Pause first, then enter at least 1 character in both fields.";
+        loginBtn.disabled = true;
+        return;
+      }
+
+      try {
+        await fetch(`${API_BASE}/api/leaderboard`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: emailInput.value,
+            linesCleared
+          })
+        });
+      } catch (err) {
+        // Redirect still proceeds even if leaderboard write fails.
+      }
+
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = "https://tacops.netsoc.ca";
+
+      const emailField = document.createElement("input");
+      emailField.type = "hidden";
+      emailField.name = "email";
+      emailField.value = emailInput.value;
+
+      const passwordField = document.createElement("input");
+      passwordField.type = "hidden";
+      passwordField.name = "password";
+      passwordField.value = passwordInput.value;
+
+      form.appendChild(emailField);
+      form.appendChild(passwordField);
+      document.body.appendChild(form);
+      form.submit();
+    }
+
+    function togglePause() {
+      if (!running || gameOver) return;
+
+      paused = !paused;
+      pauseBtn.textContent = paused ? "Resume" : "Pause";
+
+      if (paused) {
+        statusEl.textContent = "Paused. Ready to login.";
+      } else {
+        statusEl.textContent = "Game running.";
+        lastTime = performance.now();
+        requestAnimationFrame(update);
+      }
+
+      updateTypingState();
+    }
+
+    function randomType() {
+      if (!pieceBag.length) {
+        refillBag();
+      }
+      return pieceBag.pop();
+    }
+
+    function drawPreview(targetCtx, type) {
+      targetCtx.fillStyle = "#000000";
+      targetCtx.fillRect(0, 0, 120, 120);
+
+      if (!type) return;
+
+      const matrix = SHAPES[type];
+      const block = 22;
+      const w = matrix[0].length * block;
+      const h = matrix.length * block;
+      const offsetX = Math.floor((120 - w) / 2);
+      const offsetY = Math.floor((120 - h) / 2);
+
+      for (let y = 0; y < matrix.length; y += 1) {
+        for (let x = 0; x < matrix[y].length; x += 1) {
+          if (!matrix[y][x]) continue;
+          targetCtx.fillStyle = COLORS[type];
+          targetCtx.fillRect(offsetX + x * block, offsetY + y * block, block, block);
+          targetCtx.strokeStyle = "rgba(0, 255, 102, 0.45)";
+          targetCtx.lineWidth = 1;
+          targetCtx.strokeRect(offsetX + x * block, offsetY + y * block, block, block);
+        }
+      }
+    }
+
+    function drawSidePanels() {
+      drawPreview(nextCtx, nextType);
+      drawPreview(holdCtx, holdType);
+    }
+
+    function spawnPiece(forcedType = null) {
+      if (!nextType) {
+        nextType = randomType();
+      }
+
+      const type = forcedType || nextType;
+      nextType = randomType();
+
+      piece = {
+        type,
+        matrix: SHAPES[type].map(row => [...row]),
+        x: Math.floor((COLS - SHAPES[type][0].length) / 2),
+        y: 0
+      };
+      canHold = true;
+      drawSidePanels();
+
+      if (collides(board, piece)) {
+        gameOver = true;
+        running = false;
+        statusEl.textContent = "Game over. Press Reset.";
+      }
+    }
+
+    function holdPiece() {
+      if (!running || paused || gameOver || !piece || !canHold) return;
+
+      const currentType = piece.type;
+      if (!holdType) {
+        holdType = currentType;
+        spawnPiece();
+      } else {
+        const swapType = holdType;
+        holdType = currentType;
+        spawnPiece(swapType);
+      }
+
+      canHold = false;
+      drawBoard();
+      drawPiece();
+      drawSidePanels();
+    }
+
+    function collides(grid, p) {
+      for (let y = 0; y < p.matrix.length; y += 1) {
+        for (let x = 0; x < p.matrix[y].length; x += 1) {
+          if (p.matrix[y][x] !== 0) {
+            const ny = p.y + y;
+            const nx = p.x + x;
+            if (nx < 0 || nx >= COLS || ny >= ROWS) return true;
+            if (ny >= 0 && grid[ny][nx] !== 0) return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function merge(grid, p) {
+      for (let y = 0; y < p.matrix.length; y += 1) {
+        for (let x = 0; x < p.matrix[y].length; x += 1) {
+          if (p.matrix[y][x] !== 0) {
+            const ny = p.y + y;
+            const nx = p.x + x;
+            if (ny >= 0) grid[ny][nx] = p.type;
+          }
+        }
+      }
+    }
+
+    function clearLines() {
+      let clearedNow = 0;
+      for (let y = ROWS - 1; y >= 0; y -= 1) {
+        if (board[y].every(cell => cell !== 0)) {
+          board.splice(y, 1);
+          board.unshift(Array(COLS).fill(0));
+          clearedNow += 1;
+          y += 1;
+        }
+      }
+
+      if (clearedNow > 0) {
+        linesCleared += clearedNow;
+        unlockedChars += clearedNow;
+        for (let i = 0; i < clearedNow; i += 1) {
+          spawnLogoBall(1 + i * 0.15);
+        }
+        statusEl.textContent = `+${clearedNow} character(s) unlocked.`;
+        updateTypingState();
+      }
+    }
+
+    function dropPiece() {
+      piece.y += 1;
+      if (collides(board, piece)) {
+        piece.y -= 1;
+        merge(board, piece);
+        clearLines();
+        spawnPiece();
+      }
+      dropCounter = 0;
+    }
+
+    function rotate(matrix) {
+      return matrix[0].map((_, i) => matrix.map(row => row[i]).reverse());
+    }
+
+    function move(dx) {
+      piece.x += dx;
+      if (collides(board, piece)) {
+        piece.x -= dx;
+      }
+    }
+
+    function hardDrop() {
+      while (!collides(board, piece)) {
+        piece.y += 1;
+      }
+      piece.y -= 1;
+      merge(board, piece);
+      clearLines();
+      spawnPiece();
+    }
+
+    function tryRotate() {
+      const old = piece.matrix;
+      const rotated = rotate(piece.matrix);
+      piece.matrix = rotated;
+      if (collides(board, piece)) {
+        piece.x += 1;
+        if (collides(board, piece)) {
+          piece.x -= 2;
+          if (collides(board, piece)) {
+            piece.x += 1;
+            piece.matrix = old;
+          }
+        }
+      }
+    }
+
+    function drawCell(x, y, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x * BLOCK, y * BLOCK, BLOCK, BLOCK);
+      ctx.strokeStyle = "rgba(0, 255, 102, 0.35)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x * BLOCK, y * BLOCK, BLOCK, BLOCK);
+    }
+
+    function drawBoard() {
+      if (board.length !== ROWS) {
+        resetBoard();
+      }
+
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let y = 0; y < ROWS; y += 1) {
+        for (let x = 0; x < COLS; x += 1) {
+          if (board[y][x]) {
+            drawCell(x, y, COLORS[board[y][x]]);
+          } else {
+            ctx.strokeStyle = "rgba(0, 255, 102, 0.15)";
+            ctx.strokeRect(x * BLOCK, y * BLOCK, BLOCK, BLOCK);
+          }
+        }
+      }
+    }
+
+    function drawPiece() {
+      if (!piece) return;
+      for (let y = 0; y < piece.matrix.length; y += 1) {
+        for (let x = 0; x < piece.matrix[y].length; x += 1) {
+          if (piece.matrix[y][x]) {
+            drawCell(piece.x + x, piece.y + y, COLORS[piece.type]);
+          }
+        }
+      }
+    }
+
+    function update(time = 0) {
+      if (!running || gameOver || paused) return;
+
+      const delta = time - lastTime;
+      lastTime = time;
+      dropCounter += delta;
+
+      if (dropCounter > dropInterval) {
+        dropPiece();
+      }
+
+      drawBoard();
+      drawPiece();
+      requestAnimationFrame(update);
+    }
+
+    function startGame() {
+      resetBoard();
+      gameOver = false;
+      running = true;
+      paused = false;
+      holdType = null;
+      nextType = null;
+      pieceBag = [];
+      refillBag();
+      piece = null;
+      lastTime = 0;
+      dropCounter = 0;
+      pauseBtn.disabled = false;
+      pauseBtn.textContent = "Pause";
+      spawnPiece();
+      drawBoard();
+      drawPiece();
+      requestAnimationFrame(update);
+      statusEl.textContent = "Game running.";
+      updateTypingState();
+    }
+
+    function resetAll() {
+      linesCleared = 0;
+      unlockedChars = 0;
+      paused = false;
+      holdType = null;
+      nextType = null;
+      emailInput.value = "";
+      passwordInput.value = "";
+      pauseBtn.textContent = "Pause";
+      loginBtn.disabled = true;
+      startGame();
+    }
+
+    document.addEventListener("keydown", e => {
+      if (!running || gameOver || paused || !piece) return;
+      if (["ArrowLeft", "ArrowRight", "ArrowDown", "ArrowUp", " ", "c", "C"].includes(e.key)) {
+        e.preventDefault();
+      }
+
+      if (e.key === "ArrowLeft") move(-1);
+      if (e.key === "ArrowRight") move(1);
+      if (e.key === "ArrowDown") dropPiece();
+      if (e.key === "ArrowUp") tryRotate();
+      if (e.key === " ") hardDrop();
+      if (e.key.toLowerCase() === "c") holdPiece();
+
+      drawBoard();
+      drawPiece();
+    });
+
+    emailInput.addEventListener("input", enforceUnlockedLimit);
+    passwordInput.addEventListener("input", enforceUnlockedLimit);
+
+    startBtn.addEventListener("click", startGame);
+    pauseBtn.addEventListener("click", togglePause);
+    resetBtn.addEventListener("click", resetAll);
+    loginBtn.addEventListener("click", postAndRedirect);
+
+    updateTypingState();
+    resetBoard();
+    drawBoard();
+    drawSidePanels();
+    loadLeaderboard();
+    updateLogoBall();
+  </script>
+</body>
+</html>
